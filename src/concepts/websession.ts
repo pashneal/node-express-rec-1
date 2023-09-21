@@ -18,34 +18,55 @@ declare module "express-session" {
 }
 
 export default class WebSessionConcept {
-  // Concept actions
 
+
+  // Concept actions
   start(session: WebSessionDoc, username: string) {
     // In Express, the session is created spontaneously when the connection is first made, so we do not need
     // to explicitly allocate a session; we only need to keep track of the user.
 
-    // TODO: Make sure the user is logged out before allowing a new session to start.
-    // Hint: Take a look at how the "end" function makes sure the user is logged in. Keep in mind that a
-    // synchronization like starting a session should just consist of a series of actions that may throw
-    // exceptions and should not have its own control flow.
+    this.hasToBe.inactive(session);
     session.user = username;
   }
 
   getUser(session: WebSessionDoc) {
-    this.isActive(session);
+    this.hasToBe.active(session);
     return session.user!;
   }
 
   end(session: WebSessionDoc) {
     // We make sure the user is logged in before allowing the end action.
-    this.isActive(session);
+    this.hasToBe.active(session);
     session.user = undefined;
   }
 
-  // Helper functions
-  isActive(session: WebSessionDoc) {
-    if (session.user === undefined) {
-      throw new UnauthenticatedError("Not logged in!");
+  // Note: It doesn't make sense to have asserts be 
+  // in the same scope as Concept actions, as they do not
+  // mutate nor return anything, and they are not "actions"
+  // a la what was introduced in lecture.
+  //
+  // They are more like "preconditions" 
+  // We move them to a inner scope 
+  // 
+  // I may write a blog post on this idea of concept design
+  // in software, perhaps it could be an improvement
+  // to the concept framework as a whole
+  //
+  // Written to mirror natural language as concepts often do
+
+  // Preconditions
+  hasToBe = {
+    active(session: WebSessionDoc) {
+      if (session.user === undefined) {
+        throw new UnauthenticatedError("Not logged in!");
+      }
+    },
+
+    inactive(session: WebSessionDoc) {
+      if (session.user !== undefined) {
+        throw new UnauthenticatedError(`Not logged out! Currently logged in as ${session.user}`);
+      }
     }
   }
+
 }
